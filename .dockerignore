@@ -1,0 +1,13 @@
+# Ignore virtual environments
+venv/
+env/
+
+# Ignore secret keys and environment variables
+.env
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore the local ChromaDB vector storage (the container will build its own or connect to a remote one later if needed)
+data/chroma_db/
