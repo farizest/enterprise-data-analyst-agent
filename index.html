@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinchQL Data Agent</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 min-h-screen p-8">
+
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-blue-600">📊 FinchQL Data Analyst</h1>
+            <p class="text-gray-500 text-sm mt-1">Enterprise AI Data Agent (FastAPI + LangGraph)</p>
+        </header>
+
+        <!-- Prompt Box -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border flex gap-2 mb-8">
+            <input 
+                type="text" 
+                id="userQuestion" 
+                placeholder="Ask a business question (e.g., Top 5 most expensive products?)" 
+                class="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onkeypress="if(event.key === 'Enter') runQuery()"
+            >
+            <button 
+                onclick="runQuery()" 
+                id="submitBtn"
+                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium transition"
+            >
+                Analyze
+            </button>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div id="resultsSection" class="space-y-6 hidden">
+            
+            <!-- AI Insight Panel -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                <h2 class="text-lg font-semibold mb-2 text-blue-600">💡 AI Insight</h2>
+                <p id="aiInsight" class="text-gray-700 whitespace-pre-wrap"></p>
+            </div>
+
+            <!-- Visualization Panel -->
+            <div id="chartContainer" class="bg-white p-6 rounded-xl shadow-sm border hidden">
+                <h2 class="text-lg font-semibold mb-4 text-indigo-600">📈 Data Visualization</h2>
+                <div class="relative h-72">
+                    <canvas id="dataChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Technical Breakdown -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Executed SQL Panel -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border flex flex-col">
+                    <h2 class="text-lg font-semibold mb-2 text-green-600">🛠️ Executed SQL</h2>
+                    <pre id="sqlQuery" class="bg-gray-100 p-3 rounded text-xs text-gray-800 overflow-x-auto flex-1 font-mono"></pre>
+                </div>
+
+                <!-- Raw Data Panel -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border flex flex-col">
+                    <h2 class="text-lg font-semibold mb-2 text-purple-600">📋 Raw Data Output</h2>
+                    <pre id="rawData" class="bg-gray-100 p-3 rounded text-xs text-gray-800 overflow-x-auto flex-1 font-mono"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let currentChart = null;
+
+        async function runQuery() {
+            const question = document.getElementById('userQuestion').value.trim();
+            const btn = document.getElementById('submitBtn');
+            const resultsSection = document.getElementById('resultsSection');
+            const chartContainer = document.getElementById('chartContainer');
+            
+            if (!question) return;
+
+            btn.innerText = "Analyzing...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+
+                const data = await response.json();
+
+                document.getElementById('aiInsight').innerText = data.insight || "No insight returned.";
+                document.getElementById('sqlQuery').innerText = data.sql_executed || "No SQL generated.";
+                document.getElementById('rawData').innerText = data.raw_data || "No data returned.";
+
+                // Render Chart if data has 2D chartable structure
+                renderChartIfPossible(data.raw_data);
+
+                resultsSection.classList.remove('hidden');
+
+            } catch (error) {
+                alert("Error connecting to FastAPI backend. Ensure uvicorn is running!");
+                console.error(error);
+            } finally {
+                btn.innerText = "Analyze";
+                btn.disabled = false;
+            }
+        }
+
+        function renderChartIfPossible(rawText) {
+            const chartContainer = document.getElementById('chartContainer');
+            try {
+                // Parse Python tuple list string: "[('Item A', 100), ('Item B', 200)]"
+                const cleaned = rawText.replace(/\(/g, '[').replace(/\)/g, ']');
+                const parsed = JSON.parse(cleaned.replace(/'/g, '"'));
+
+                if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].length === 2 && typeof parsed[0][1] === 'number') {
+                    const labels = parsed.map(item => item[0]);
+                    const values = parsed.map(item => item[1]);
+
+                    if (currentChart) currentChart.destroy();
+
+                    const ctx = document.getElementById('dataChart').getContext('2d');
+                    currentChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Metric Value',
+                                data: values,
+                                backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                                borderColor: 'rgb(37, 99, 235)',
+                                borderWidth: 1,
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { beginAtZero: true }
+                            }
+                        }
+                    });
+
+                    chartContainer.classList.remove('hidden');
+                    return;
+                }
+            } catch (e) {
+                // Non-chartable data (e.g., single scalars or complex tables)
+            }
+            chartContainer.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

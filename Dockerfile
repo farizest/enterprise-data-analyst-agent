@@ -3,5 +3,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-EXPOSE 8501
-CMD ["streamlit", "run", "src/app.py", "--server.address=0.0.0.0"]
+# Expose the port FastAPI runs on
+EXPOSE 8000
+# Command to run the FastAPI server
+CMD ["uvicorn", "src.api:api", "--host", "0.0.0.0", "--port", "8000"]
