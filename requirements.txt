@@ -8,3 +8,6 @@ streamlit
 langgraph
 pandas
 psycopg2-binary
+fastapi
+uvicorn 
+pydantic

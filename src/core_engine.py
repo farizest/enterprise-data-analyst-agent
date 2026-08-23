@@ -14,7 +14,7 @@ db = SQLDatabase.from_uri("sqlite:///data/AdventureWorks.db")
 
 # 3. Initialize the Free LLM (Gemini 1.5 Flash is extremely fast and capable)
 # 3. Initialize the Free LLM (Updated to current model)
-llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
 # 4. Create the LangChain SQL Agent 
 agent_executor = create_sql_agent(llm, db=db, agent_type="tool-calling", verbose=True)
 # 5. Ask the AI a question!
