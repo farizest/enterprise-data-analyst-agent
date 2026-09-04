@@ -1,43 +1,71 @@
 import streamlit as st
 import pandas as pd
-import ast
-from agentic_workflow import app 
+import os
 
-st.set_page_config(page_title="Enterprise AI Analyst", page_icon="📊")
-st.title("📊 Enterprise Data Analyst AI")
-st.markdown("Ask me anything about your business data (Sales, Customers, Products).")
+# Import our compiled LangGraph pipeline
+from agentic_workflow import app as ai_pipeline
 
-user_question = st.text_input("What would you like to know?")
+st.set_page_config(page_title="Enterprise AI Data Analyst", page_icon="📊", layout="wide")
 
-if st.button("Run Analysis"):
-    if user_question:
-        with st.spinner("Analyzing database..."):
-            initial_clipboard = {"question": user_question}
-            final_state = app.invoke(initial_clipboard)
+st.title("📊 Enterprise AI Data Analyst")
+st.markdown("Ask me anything about the AdventureWorks database!")
+st.divider()
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+        # If there's a dataframe stored in the message history, display it!
+        if "df" in message and message["df"] is not None:
+            st.dataframe(message["df"])
+            if len(message["df"].columns) >= 2:
+                st.bar_chart(message["df"].set_index(message["df"].columns[0]))
+
+if prompt := st.chat_input("E.g., What is the total revenue for the top 5 customers?"):
+    
+    st.chat_message("user").markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    with st.spinner("Agents are analyzing the database..."):
+        try:
+            # --- NEW MEMORY LOGIC ---
+            # Grab the last 4 messages (excluding the one they just typed) to save token space
+            recent_history = []
+            if len(st.session_state.messages) > 1:
+                # Get the last few messages, format them simply
+                recent_history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[-5:-1]]
             
-            st.markdown("### 💡 AI Insight")
-            st.info(final_state.get('final_answer'))
+            # Pass the history to the AI via initial_state!
+            initial_state = {
+                "question": prompt, 
+                "confidence_score": 1.0,
+                "chat_history": recent_history
+            } 
+            final_state = ai_pipeline.invoke(initial_state)
+            # ------------------------
             
-            # --- NEW: VISUALIZATION ENGINE ---
-            raw_data = final_state.get('data_result', '')
-            try:
-                # Safely convert the raw text into a Python list
-                parsed_data = ast.literal_eval(raw_data)
-                if isinstance(parsed_data, list) and len(parsed_data) > 0 and isinstance(parsed_data[0], tuple):
-                    df = pd.DataFrame(parsed_data)
-                    st.markdown("### 📈 Data Visualization")
-                    if len(df.columns) == 2:
-                        df.set_index(0, inplace=True)
-                        st.bar_chart(df)
-                    else:
-                        st.dataframe(df)
-            except Exception:
-                pass # Skip chart if data isn't chart-friendly
+            answer = final_state.get("final_answer", "Sorry, I couldn't find an answer.")
+            sql = final_state.get("sql_query", "")
+            df = final_state.get("data_frame") # Grab the Pandas DataFrame!
+            
+            ui_response = f"{answer}\n\n---\n**🤖 AI Generated SQL:**\n```sql\n{sql}\n```"
+
+            with st.chat_message("assistant"):
+                st.markdown(ui_response)
                 
-            with st.expander("🛠️ View Execution Details (SQL & Raw Data)"):
-                st.markdown("**Generated SQL:**")
-                st.code(final_state.get('sql_query'), language="sql")
-                st.markdown("**Raw Database Output:**")
-                st.write(final_state.get('data_result'))
-    else:
-        st.warning("Please enter a question first!")
+                # Draw the charts dynamically!
+                if isinstance(df, pd.DataFrame) and not df.empty:
+                    st.write("**📊 Data Visualization:**")
+                    st.dataframe(df) # Display the raw table
+                    
+                    # If we have at least 2 columns, draw a bar chart using the first column as the X-axis
+                    if len(df.columns) >= 2:
+                        st.bar_chart(df.set_index(df.columns[0]))
+            
+            # Save the response and the dataframe to history
+            st.session_state.messages.append({"role": "assistant", "content": ui_response, "df": df})
+            
+        except Exception as e:
+            st.error(f"Pipeline Error: {e}")

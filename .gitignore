@@ -12,3 +12,4 @@ data/*.sqlite
 
 # Ignore secret keys and environment variables
 .env
+data/chroma_db/
