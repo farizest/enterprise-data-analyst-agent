@@ -30,8 +30,11 @@ export default function Dashboard({ onBackToHome }) {
 
     setMessages(prev => [...prev, { role: 'assistant', content: 'Analyzing schema and executing query...' }]);
 
+    // Dynamic backend URL: falls back to localhost if environment variable is not defined
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/query', {
+      const response = await fetch(`${API_BASE}/api/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: queryText })
@@ -192,53 +195,53 @@ export default function Dashboard({ onBackToHome }) {
                 )}
 
                 {activeTab === 'sql' && (
-                    <div 
-                        className="sql-content"
-                        style={{
-                        backgroundColor: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        padding: '1.25rem'
-                        }}
+                  <div 
+                    className="sql-content"
+                    style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '1.25rem'
+                    }}
+                  >
+                    <pre 
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        padding: '1rem',
+                        margin: '0',
+                        overflowX: 'auto'
+                      }}
                     >
-                        <pre 
+                      <code 
                         style={{
-                            backgroundColor: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '6px',
-                            padding: '1rem',
-                            margin: '0',
-                            overflowX: 'auto'
+                          color: '#0f172a',
+                          backgroundColor: '#ffffff',
+                          fontFamily: 'Consolas, Monaco, "Courier New", Courier, monospace',
+                          fontSize: '0.9rem',
+                          fontWeight: '600',
+                          lineHeight: '1.5',
+                          display: 'block'
                         }}
-                        >
-                        <code 
-                            style={{
-                            color: '#0f172a',
-                            backgroundColor: '#ffffff',
-                            fontFamily: 'Consolas, Monaco, "Courier New", Courier, monospace',
-                            fontSize: '0.9rem',
-                            fontWeight: '600',
-                            lineHeight: '1.5',
-                            display: 'block'
-                            }}
-                        >
-                            {executedSql}
-                        </code>
-                        </pre>
-                        <span 
-                        className="exec-time"
-                        style={{
-                            display: 'block',
-                            fontSize: '0.75rem',
-                            color: '#16a34a',
-                            marginTop: '0.75rem',
-                            fontWeight: '500'
-                        }}
-                        >
-                        Generated dynamically via schema mapping & LangGraph.
-                        </span>
-                    </div>
-                    )}
+                      >
+                        {executedSql}
+                      </code>
+                    </pre>
+                    <span 
+                      className="exec-time"
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        color: '#16a34a',
+                        marginTop: '0.75rem',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Generated dynamically via schema mapping & LangGraph.
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </section>
