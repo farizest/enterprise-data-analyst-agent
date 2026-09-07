@@ -18,7 +18,28 @@ llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
 
 # Connect to ChromaDB
 chroma_client = chromadb.PersistentClient(path="data/chroma_db")
-schema_collection = chroma_client.get_collection(name="adventureworks_schema")
+# To this:
+schema_collection = chroma_client.get_or_create_collection(name="adventureworks_schema")
+
+# Ensure it contains the base schema metadata if empty:
+if schema_collection.count() == 0:
+    schema_collection.add(
+        documents=[
+            "Table: production.product - Columns: productid, name, listprice, standardcost, productnumber",
+            "Table: sales.salesorderheader - Columns: salesorderid, customerid, totaldue, orderdate, shiptoaddressid",
+            "Table: sales.salesorderdetail - Columns: salesorderid, productid, orderqty, unitprice, linetotal",
+            "Table: sales.customer - Columns: customerid, personid, storeid, territoryid",
+            "Table: person.address - Columns: addressid, city, stateprovinceid, postalcode"
+        ],
+        metadatas=[
+            {"table_name": "production.product"},
+            {"table_name": "sales.salesorderheader"},
+            {"table_name": "sales.salesorderdetail"},
+            {"table_name": "sales.customer"},
+            {"table_name": "person.address"}
+        ],
+        ids=["doc_prod", "doc_soh", "doc_sod", "doc_cust", "doc_addr"]
+    )
 
 class AgentState(TypedDict):
     question: str
