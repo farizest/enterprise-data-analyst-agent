@@ -17,7 +17,8 @@ class QueryRequest(BaseModel):
     question: str
 
 @app.post("/api/query")
-async def run_query(req: QueryRequest):
+@app.post("/query")
+async def run_query(request: QueryRequest): # or whatever your function name/parameter is
     try:
         # Invoke your real LangGraph agent workflow!
         state = ai_pipeline.invoke({"question": req.question, "confidence_score": 1.0})
