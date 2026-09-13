@@ -6,9 +6,16 @@ from fastapi.responses import FileResponse
 
 api = FastAPI(title="Enterprise AI Analyst API", version="1.0")
 
+# List your exact frontend URLs here (Make sure there is NO trailing slash at the end of the URL)
+origins = [
+    "https://enterprise-data-analyst-agent.vercel.app", # Your deployed Vercel frontend
+    "http://localhost:3000",                            # For local React/Next.js testing
+    "http://localhost:8501"                             # For local Streamlit testing
+]
+
 api.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,       # <--- Use the specific list instead of ["*"]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
