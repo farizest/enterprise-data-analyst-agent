@@ -14,7 +14,7 @@ load_dotenv()
 
 postgres_url = os.environ.get("DATABASE_URL")
 db = SQLDatabase.from_uri(postgres_url)
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
 
 # Connect to ChromaDB
 chroma_client = chromadb.PersistentClient(path="data/chroma_db")
